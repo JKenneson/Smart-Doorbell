@@ -1,3 +1,6 @@
+//Tx pin = 2
+//Rx pin = 3
+
 #include <Adafruit_VC0706.h>
 #include <SPI.h>
 #include <SD.h>

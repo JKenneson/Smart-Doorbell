@@ -3,7 +3,7 @@
  * Jonathan Kenneson & Kyle Monto
  */
  
-int inputPin = 2;               // choose the input pin (for PIR sensor)
+int inputPin = 5;               // choose the input pin (for PIR sensor)
 int pirState = LOW;             // we start, assuming no motion detected
 int val = 0;                    // variable for reading the pin status
  
@@ -15,7 +15,10 @@ void setup() {
  
 void loop(){
   val = digitalRead(inputPin);  // read input value
-
+  
   Serial.print("State: ");
   Serial.println(val);
+  if(val == HIGH){
+    delay(4000);
+  }
 }
