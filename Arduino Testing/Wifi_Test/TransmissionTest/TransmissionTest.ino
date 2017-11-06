@@ -7,10 +7,10 @@
 
 
 WiFiClient wclient;
-char ssid[] = "FBI Van 3";        // your network SSID (name)
-char pass[] = "brightquail370";    // your network password (use for WPA, or use as key for WEP)
-//char ssid[] = "Embedded Systems Class";        // your network SSID (name)
-//char pass[] = "embedded1234";    // your network password (use for WPA, or use as key for WEP)
+//char ssid[] = "FBI Van 3";        // your network SSID (name)
+//char pass[] = "brightquail370";    // your network password (use for WPA, or use as key for WEP)
+char ssid[] = "Embedded Systems Class";        // your network SSID (name)
+char pass[] = "embedded1234";    // your network password (use for WPA, or use as key for WEP)
 
 int status = WL_IDLE_STATUS;     // the WiFi radio's status
 
