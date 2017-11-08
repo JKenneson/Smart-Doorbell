@@ -12,12 +12,16 @@ int a=0x0000,  //Read Starting address
 uint8_t MH,ML;
 boolean EndFlag=0;
 
+String pictureStringAsHex = "";
 
 void setup() { 
   Serial.begin(9600);
   cameraSerial.begin(38400);
   
   SendResetCmd();
+  delay(3000);
+  ChangeSizeMedium();
+  
   delay(3000);
 }
 
@@ -53,12 +57,18 @@ void loop() {
             
     for(j=0;j<count;j++) {   
       if(b[j]<0x10)
+      {
         Serial.print("0");
+        pictureStringAsHex = pictureStringAsHex + "0";
+      }
       Serial.print(b[j], HEX);
+      pictureStringAsHex = pictureStringAsHex + String(b[j], HEX);
     }
-    Serial.println();
+//    Serial.println();
   }
-  
+  Serial.println();
+  Serial.println();
+  Serial.println(pictureStringAsHex);
   delay(3000);
   StopTakePhotoCmd(); //stop this picture so another one can be taken
   EndFlag = 0; //reset flag to allow another picture to be read
@@ -126,4 +136,45 @@ void StopTakePhotoCmd() {
   cameraSerial.write((byte)0x36);
   cameraSerial.write((byte)0x01);
   cameraSerial.write((byte)0x03);        
+}
+
+//160*120
+void ChangeSizeSmall() {
+    cameraSerial.write((byte)0x56);
+    cameraSerial.write((byte)0x00);
+    cameraSerial.write((byte)0x31);
+    cameraSerial.write((byte)0x05);
+    cameraSerial.write((byte)0x04);
+    cameraSerial.write((byte)0x01);
+    cameraSerial.write((byte)0x00);
+    cameraSerial.write((byte)0x19);
+    cameraSerial.write((byte)0x22);      
+}
+
+//320*240
+void ChangeSizeMedium()
+{
+    cameraSerial.write((byte)0x56);
+    cameraSerial.write((byte)0x00);
+    cameraSerial.write((byte)0x31);
+    cameraSerial.write((byte)0x05);
+    cameraSerial.write((byte)0x04);
+    cameraSerial.write((byte)0x01);
+    cameraSerial.write((byte)0x00);
+    cameraSerial.write((byte)0x19);
+    cameraSerial.write((byte)0x11);      
+}
+
+//640*480
+void ChangeSizeBig()
+{
+    cameraSerial.write((byte)0x56);
+    cameraSerial.write((byte)0x00);
+    cameraSerial.write((byte)0x31);
+    cameraSerial.write((byte)0x05);
+    cameraSerial.write((byte)0x04);
+    cameraSerial.write((byte)0x01);
+    cameraSerial.write((byte)0x00);
+    cameraSerial.write((byte)0x19);
+    cameraSerial.write((byte)0x00);      
 }

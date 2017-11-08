@@ -9,18 +9,37 @@
 #include <PubSubClient.h> 
 
 
-// On Mega: camera TX connected to pin 69 (A15), camera RX to pin 3:
-SoftwareSerial cameraconnection = SoftwareSerial(69, 3);
-// On Uno: Tx to pin 2, Rx to pin 3
-//SoftwareSerial cameraconnection = SoftwareSerial(2, 3);
-Adafruit_VC0706 cam = Adafruit_VC0706(&cameraconnection);
+//*********************************************************************************//
+//                             Camera Globals                                      //
+//*********************************************************************************//
 
-//PIR motion sensor globals
+byte incomingbyte;
+//Configure pin 69 and 3 as soft serial port
+// On Mega: camera TX connected to pin 69 (A15), camera RX to pin 3:
+SoftwareSerial cameraSerial = SoftwareSerial(69, 3); 
+
+int a=0x0000,  //Read Starting address     
+    j=0,
+    k=0,
+    count=0;
+uint8_t MH,ML;
+boolean EndFlag=0;
+
+String pictureStringAsHex = "";
+
+
+
+//*********************************************************************************//
+//                           Motion Sensor Globals                                 //
+//*********************************************************************************//
 int pirInputPin = 5;               // choose the input pin (for PIR sensor)
 int pirState = LOW;             // we start, assuming no motion detected
 int pirStatus = 0;                    // variable for reading the pin status
 
-//Wifi globals
+
+//*********************************************************************************//
+//                               Wifi Globals                                      //
+//*********************************************************************************//
 WiFiClient wclient;
 //char ssid[] = "FBI Van 3";        // your network SSID (name)
 //char pass[] = "brightquail370";    // your network password (use for WPA, or use as key for WEP)
@@ -39,61 +58,39 @@ void callback(char* inTopic, byte* payload, unsigned int length){
 
 PubSubClient client(server, 1883, callback, wclient);
 
+
+
+//*********************************************************************************//
+//                                  Setup()                                        //
+//*********************************************************************************//
+
 void setup() {
   Serial.begin(9600);
 
 //  Camera Setup BEGIN
 
-  Serial.println("KFM Demo 1");
+  Serial.print("Camera Setup");
+  cameraSerial.begin(38400);
   
-  // Try to locate the camera
-  if (cam.begin()) {
-    Serial.println("Camera Found:");
-  } else {
-    Serial.println("No camera found?");
-    return;
-  }
-  // Print out the camera version information (optional)
-  char *reply = cam.getVersion();
-  if (reply == 0) {
-    Serial.print("Failed to get version");
-  } else {
-    Serial.println("-----------------");
-    Serial.print(reply);
-    Serial.println("-----------------");
-  }
-
-  // Set the picture size - you can choose one of 640x480, 320x240 or 160x120 
-  // Remember that bigger pictures take longer to transmit!
-  
-//  cam.setImageSize(VC0706_640x480);        // biggest
-  //cam.setImageSize(VC0706_320x240);        // medium
-  cam.setImageSize(VC0706_160x120);          // small
-
-  // You can read the size back from the camera (optional, but maybe useful?)
-  uint8_t imgsize = cam.getImageSize();
-  Serial.print("Image size: ");
-  if (imgsize == VC0706_640x480) Serial.println("640x480");
-  if (imgsize == VC0706_320x240) Serial.println("320x240");
-  if (imgsize == VC0706_160x120) Serial.println("160x120");
-
+  SendResetCmd();
+  delay(3000);
+  ChangeSizeMedium();
+  Serial.println("... Complete!");
 //  Camera setup END
 
 // Motion Sensor Setup BEGIN
 
   pinMode(pirInputPin, INPUT);     // declare sensor as input
-  Serial.println("Motion Sensor Stabilizing...");
+  Serial.print("Motion Sensor Setup");
   delay(5000);
-  Serial.println("Motion Sensor Stabilized");
+  Serial.println("... Complete!");
 //  Motion Sensor Setup END
 
 //  Wifi Setup BEGIN
   //Configure pins for Adafruit ATWINC1500 Breakout
   WiFi.setPins(8,7,4);    //WiFi.setPins(chipSelect, irq, reset, enable)  - enable tied to VCC
 
-  Serial.print("Wifi status: ");
-
-  Serial.println(WiFi.status());
+  Serial.println("Wifi Setup");
   // check for the presence of the shield:
   if (WiFi.status() == WL_NO_SHIELD) {
     Serial.println("WiFi shield not present");
@@ -112,14 +109,18 @@ void setup() {
     delay(5000);
   }
 
-  // you're connected now, so print out the data:
-  Serial.println("You're connected to the network");
-//  printCurrentNet();
+  // Connected now, so print out the data:
+  Serial.println("Connected to the network!");
   printWiFiData();
 //  Wifi Setup END
 
   
 }
+
+
+//*********************************************************************************//
+//                                  main()                                         //
+//*********************************************************************************//
 
 void loop() {
   pirStatus = digitalRead(pirInputPin);  // read input value
@@ -128,63 +129,217 @@ void loop() {
 //  Serial.println(pirStatus);
   if(pirStatus == HIGH){
     takePicture();
-    sendMessageToServer("Hello, World");
   }
-
 
 }
 
-void takePicture(){
-  if (! cam.takePicture()) 
-    Serial.println("Failed to snap!");
-  else 
-    Serial.println("Picture taken!");
+
+
+
+//*********************************************************************************//
+//                            Camera Main Functions                                //
+//*********************************************************************************//
+
+void takePicture() {
+  SendTakePhotoCmd();
   
-  // Get the size of the image (frame) taken  
-  uint16_t jpglen = cam.frameLength();
-  Serial.print("Printing ");
-  Serial.print(jpglen, DEC);
-  Serial.println(" byte image.");
+  Serial.println("Taking picture"); 
+  delay(100);
 
-  int32_t time = millis();
-  // Read all the data up to # bytes!
-  while (jpglen > 0) {
-    // read 32 bytes at a time;
-    uint8_t *buffer;
-    uint8_t bytesToRead = min(64, jpglen); // change 32 to 64 for a speedup but may not work with all setups!
-    buffer = cam.readPicture(bytesToRead);
-    String str = (char*) buffer;
-
-    for(int i = 0 ; i < bytesToRead ; i++) {
-      Serial.print(buffer[i], HEX);  
-    }
-    
-    //Serial.print("Read ");  Serial.print(bytesToRead, DEC); Serial.println(" bytes");
-    jpglen -= bytesToRead;
+  while(cameraSerial.available()>0) {
+    incomingbyte=cameraSerial.read();
   }
+  byte b[32];
+      
+  while(!EndFlag) {  
+    j=0;
+    k=0;
+    count=0;
+    SendReadDataCmd();
+           
+    delay(75); //try going up
+    while(cameraSerial.available()>0) {
+      incomingbyte=cameraSerial.read();
+      k++;
+      if((k>5)&&(j<32)&&(!EndFlag)) {
+        b[j]=incomingbyte;
+        if((b[j-1]==0xFF)&&(b[j]==0xD9))
+        EndFlag=1;                           
+        j++;
+        count++;
+      }
+    }
+            
+    for(j=0;j<count;j++) {   
+      if(b[j]<0x10)
+      {
+        Serial.print("0");
+        pictureStringAsHex = pictureStringAsHex + "0";
+      }
+      Serial.print(b[j], HEX);
+      pictureStringAsHex = pictureStringAsHex + String(b[j], HEX);
+    }
+//    Serial.println();
+  }
+  Serial.println();
+  Serial.println();
+  Serial.println(pictureStringAsHex);
+  delay(3000);
+  StopTakePhotoCmd(); //stop this picture so another one can be taken
+  EndFlag = 0; //reset flag to allow another picture to be read
+  Serial.println("End of picture");
+  Serial.println(); 
 
-  time = millis() - time;
-  Serial.println("done!");
-  Serial.print(time); Serial.println(" ms elapsed");
+  //Send to Server
+  sendMessageToServer(pictureStringAsHex);
+
+  
+  delay(2000);
 }
+
+
+//*********************************************************************************//
+//                           Wifi Main Functions                                   //
+//*********************************************************************************//
+
 
 void sendMessageToServer(String stringBuild){
   // convert into to char array
-  int str_len = stringBuild.length() + 1;  // Length (with one extra character for the null terminator)
+//  int str_len = stringBuild.length() + 1;  // Length (with one extra character for the null terminator)
+  int str_len = 500;
   char char_array[str_len];  // Prepare the character array (the buffer) 
   stringBuild.toCharArray(char_array, str_len);  // Copy it over 
 
+  Serial.println();
+  Serial.print("Attempting to publish: ");
+  Serial.println(char_array);
   
   // publish data to MQTT broker
   if (client.connect("LaunchPadClient")) {
-    client.publish("outTopicKMonto", char_array);
-//    client.subscribe("inTopicKMonto");
-    Serial.println("Publishing successful!");
+    if(client.publish("KFM", char_array) == true) {
+      Serial.println("Publishing successful!");  
+    }
+    else {
+      Serial.println("Publishing unsuccessful :(");  
+    }
     client.disconnect();
   }
   //every 5 seconds
   delay(5000);
 }
+
+
+
+
+//*********************************************************************************//
+//                          Camera Helper Functions                                //
+//*********************************************************************************//
+
+//Send Reset command
+void SendResetCmd() {
+  cameraSerial.write((byte)0x56);
+  cameraSerial.write((byte)0x00);
+  cameraSerial.write((byte)0x26);
+  cameraSerial.write((byte)0x00);   
+}
+
+//Send take picture command
+void SendTakePhotoCmd() {
+  cameraSerial.write((byte)0x56);
+  cameraSerial.write((byte)0x00);
+  cameraSerial.write((byte)0x36);
+  cameraSerial.write((byte)0x01);
+  cameraSerial.write((byte)0x00);
+    
+  a = 0x0000; //reset so that another picture can taken
+}
+
+void FrameSize() {
+  cameraSerial.write((byte)0x56);
+  cameraSerial.write((byte)0x00);
+  cameraSerial.write((byte)0x34);
+  cameraSerial.write((byte)0x01);
+  cameraSerial.write((byte)0x00);  
+}
+
+//Read data
+void SendReadDataCmd() {
+  MH=a/0x100;
+  ML=a%0x100;
+      
+  cameraSerial.write((byte)0x56);
+  cameraSerial.write((byte)0x00);
+  cameraSerial.write((byte)0x32);
+  cameraSerial.write((byte)0x0c);
+  cameraSerial.write((byte)0x00);
+  cameraSerial.write((byte)0x0a);
+  cameraSerial.write((byte)0x00);
+  cameraSerial.write((byte)0x00);
+  cameraSerial.write((byte)MH);
+  cameraSerial.write((byte)ML);
+  cameraSerial.write((byte)0x00);
+  cameraSerial.write((byte)0x00);
+  cameraSerial.write((byte)0x00);
+  cameraSerial.write((byte)0x20);
+  cameraSerial.write((byte)0x00);
+  cameraSerial.write((byte)0x0a);
+
+  a+=0x20; 
+}
+
+void StopTakePhotoCmd() {
+  cameraSerial.write((byte)0x56);
+  cameraSerial.write((byte)0x00);
+  cameraSerial.write((byte)0x36);
+  cameraSerial.write((byte)0x01);
+  cameraSerial.write((byte)0x03);        
+}
+
+//160*120
+void ChangeSizeSmall() {
+    cameraSerial.write((byte)0x56);
+    cameraSerial.write((byte)0x00);
+    cameraSerial.write((byte)0x31);
+    cameraSerial.write((byte)0x05);
+    cameraSerial.write((byte)0x04);
+    cameraSerial.write((byte)0x01);
+    cameraSerial.write((byte)0x00);
+    cameraSerial.write((byte)0x19);
+    cameraSerial.write((byte)0x22);      
+}
+
+//320*240
+void ChangeSizeMedium()
+{
+    cameraSerial.write((byte)0x56);
+    cameraSerial.write((byte)0x00);
+    cameraSerial.write((byte)0x31);
+    cameraSerial.write((byte)0x05);
+    cameraSerial.write((byte)0x04);
+    cameraSerial.write((byte)0x01);
+    cameraSerial.write((byte)0x00);
+    cameraSerial.write((byte)0x19);
+    cameraSerial.write((byte)0x11);      
+}
+
+//640*480
+void ChangeSizeBig()
+{
+    cameraSerial.write((byte)0x56);
+    cameraSerial.write((byte)0x00);
+    cameraSerial.write((byte)0x31);
+    cameraSerial.write((byte)0x05);
+    cameraSerial.write((byte)0x04);
+    cameraSerial.write((byte)0x01);
+    cameraSerial.write((byte)0x00);
+    cameraSerial.write((byte)0x19);
+    cameraSerial.write((byte)0x00);      
+}
+
+
+//*********************************************************************************//
+//                          Wifi Helper Functions                                  //
+//*********************************************************************************//
 
 void printWiFiData() {
   // print your WiFi shield's IP address:
@@ -215,6 +370,5 @@ void printWiFiData() {
   Serial.println(mac[0], HEX);
   Serial.println();
 }
-
 
 
