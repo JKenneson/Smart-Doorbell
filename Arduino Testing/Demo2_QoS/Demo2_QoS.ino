@@ -13,7 +13,7 @@
 #include <SD.h>
 #include <SoftwareSerial.h>
 #include <WiFi101.h>   // changed from Wifi101.h to Wifi.h
-#include <PubSubClient.h>
+#include <MQTTClient.h>
 
 
 //*********************************************************************************//
@@ -43,22 +43,14 @@ int pirStatus = 0;                 // variable for reading the pin status
 //                               Wifi Globals                                      //
 //*********************************************************************************//
 WiFiClient wclient;
+MQTTClient client(1024);
+
 //char ssid[] = "FBI Van 3";        // your network SSID (name)
 //char pass[] = "brightquail370";    // your network password (use for WPA, or use as key for WEP)
 char ssid[] = "Embedded Systems Class";        // your network SSID (name)
 char pass[] = "embedded1234";    // your network password (use for WPA, or use as key for WEP)
 
 int status = WL_IDLE_STATUS;     // the WiFi radio's status
-
-byte server[] = { 198, 41, 30, 241 }; //  Public MQTT Brokers: http://mqtt.org/wiki/doku.php/public_brokers
-byte ip[]     = { 172, 16, 0, 100 };
-
-void callback(char* inTopic, byte* payload, unsigned int length){
-// Handle callback here
-
-}
-
-PubSubClient client(server, 1883, callback, wclient);
 
 
 
@@ -92,6 +84,8 @@ void setup() {
 //  Wifi Setup BEGIN
   //Configure pins for Adafruit ATWINC1500 Breakout
   WiFi.setPins(8,7,4);    //WiFi.setPins(chipSelect, irq, reset, enable)  - enable tied to VCC
+
+  client.begin("198.41.30.241", 1883, wclient);
 
   // check for the presence of the shield:
   if (WiFi.status() == WL_NO_SHIELD) {
@@ -197,7 +191,7 @@ void takePicture() {
         byteCount++;
       }
 
-      if(byteCount > 200) {
+      if(byteCount > 1000) {
         sendMessageToServer(pictureArray);
         memset(pictureArray, '\0', 1024);
         byteCount = 0;
@@ -240,8 +234,8 @@ void sendMessageToServer(char pictureArray []){
   bool published = false;
   // publish data to MQTT broker
   while(!published) {
-    if (client.connect("LaunchPadClient", "KFM", 2, 1, "Hello World")) {
-      if(client.publish("KFM", pictureArray) == true) {
+    if (client.connect("LaunchPadClient")) {
+      if(client.publish("KFM", pictureArray, true, 2) == true) {
 //        Serial.println("Publishing successful!");
         published = true;
       }
