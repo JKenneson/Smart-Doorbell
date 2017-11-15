@@ -42,8 +42,9 @@ int pirStatus = 0;                 // variable for reading the pin status
 //*********************************************************************************//
 //                               Wifi Globals                                      //
 //*********************************************************************************//
+const int packetSize = 1024;
 WiFiClient wclient;
-MQTTClient client(1024);
+MQTTClient client(packetSize);
 
 //char ssid[] = "FBI Van 3";        // your network SSID (name)
 //char pass[] = "brightquail370";    // your network password (use for WPA, or use as key for WEP)
@@ -67,7 +68,8 @@ void setup() {
 
   SendResetCmd();
   delay(2000);          //Delay for bit stabilization
-  ChangeSizeMedium();
+  //ChangeSizeMedium();
+  ChangeSizeSmall();
   delay(2000);
   Serial.println("... Complete!");
 //  Camera setup END
@@ -140,8 +142,8 @@ void loop() {
 //*********************************************************************************//
 
 void takePicture() {
-  char pictureArray[1024];
-  memset(pictureArray, '\0', 1024);
+  char pictureArray[packetSize];
+  memset(pictureArray, '\0', packetSize);
 //  delay(100);
   
   SendTakePhotoCmd();
@@ -191,9 +193,9 @@ void takePicture() {
         byteCount++;
       }
 
-      if(byteCount > 1000) {
+      if(byteCount > packetSize - 32) {
         sendMessageToServer(pictureArray);
-        memset(pictureArray, '\0', 1024);
+        memset(pictureArray, '\0', packetSize);
         byteCount = 0;
 //        delay(100);
       }
@@ -212,6 +214,7 @@ void takePicture() {
   Serial.println();
 
   delay(5000);
+  Serial.println("Waiting for motion sensor trigger...");
 }
 
 
@@ -241,7 +244,7 @@ void sendMessageToServer(char pictureArray []){
       }
       else {
 //        Serial.println("Publishing unsuccessful :(");
-          delay(250);
+//          delay(250);
       }
       client.disconnect();
     }
