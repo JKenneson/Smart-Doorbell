@@ -1,0 +1,1 @@
+This folder contains all our Arduino testing files for our sub-component testing on the embedded system.

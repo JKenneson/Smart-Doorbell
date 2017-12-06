@@ -46,12 +46,12 @@ const int packetSize = 1024;
 WiFiClient wclient;
 MQTTClient client(packetSize);
 
-//char ssid[] = "FBI Van 3";        // your network SSID (name)
-//char pass[] = "brightquail370";    // your network password (use for WPA, or use as key for WEP)
+char ssid[] = "FBI Van 3";        // your network SSID (name)
+char pass[] = "brightquail370";    // your network password (use for WPA, or use as key for WEP)
 //char ssid[] = "Embedded Systems Class";        // your network SSID (name)
 //char pass[] = "embedded1234";    // your network password (use for WPA, or use as key for WEP)
-char ssid[] = "H2P";        // your network SSID (name)
-char pass[] = "1abc2bc3c4";    // your network password (use for WPA, or use as key for WEP)
+//char ssid[] = "H2P";        // your network SSID (name)
+//char pass[] = "1abc2bc3c4";    // your network password (use for WPA, or use as key for WEP)
 
 int status = WL_IDLE_STATUS;     // the WiFi radio's status
 

@@ -1,0 +1,1 @@
+This folder contains all our Arduino code for each of the 3 demos during the course of this project.
