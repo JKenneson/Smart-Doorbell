@@ -7,6 +7,7 @@ The following upper level directories can be found in the current directory:
 * Arduino Testing
 * Bluemix
 * Eagle
+* Checkoffs
 * Libraries
 * Solidworks
 
@@ -18,9 +19,11 @@ The parts needed to recreate the prototype include:
 * PIR Motion Sensor
 * ATWINC1500 Wifi breakout
 
-The Arduino Testing directory contains files related to testing individual components and each of the demo checkoff code samples.
+The Arduino Testing directory contains files related to testing individual components and combinations of components.
 
 The Bluemix directory contains code that can be imported in order to recreate the Node-RED setup associated with the project.
+
+The Checkoff directory contains the code used during the checkoff demonstrations.
 
 The Eagle directory contains all relevant files associated with development of the custom shield placed on top of the Arduino MEGA.
 
